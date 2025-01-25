@@ -47,7 +47,7 @@
   </style>
 </head>
 <body>
-  <h1>isten again, and watch the screen</h1>
+  <h1>Listen and watch the screen</h1>
   <button id="playBtn">Play / Stop</button>
 
   <div id="sign"></div>
@@ -93,29 +93,21 @@
     // Initially load the first track (but do NOT auto-play)
     loadTrack(currentIndex);
 
-    // 3. The button toggles between play and stop
+    // 3. Play all clips continuously on button click
     playBtn.addEventListener('click', () => {
-      if (!isPlaying && audioEl.src) {
-        // If NOT currently playing (isPlaying==false) and we have a valid src:
-        audioEl.play();
-        isPlaying = true;
-      } else {
-        // If already playing, or no valid src, then pause/stop
-        audioEl.pause();
-        isPlaying = false;
-      }
+      audioEl.play();
+      // Optionally disable button to prevent multiple clicks
+      playBtn.disabled = true;
     });
 
-    // 4. When the current track ends, move to the next track (but do not auto-play)
+    // 4. When each clip ends, load/play the next one automatically
     audioEl.addEventListener('ended', () => {
-      isPlaying = false;
       currentIndex++;
-
-      // If more tracks remain, load the next one
       if (currentIndex < playlist.length) {
         loadTrack(currentIndex);
+        audioEl.play();
       } else {
-        // No more tracks, clear the sign
+        // No more clips, clear the sign
         signEl.textContent = '';
       }
     });
