@@ -29,6 +29,20 @@
       line-height: 1.5;
       color: #333;
     }
+    /* Styling for the button */
+    #startGameBtn {
+      margin-top: 2rem;      /* space above the button */
+      padding: 0.8rem 1.2rem;
+      font-size: 1rem;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #startGameBtn:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
@@ -42,15 +56,16 @@
       2. the continuous murmuring sound of flowing water.<br />
       <em>"the babble of a brook"</em>
     </div>
+
+    <!-- Move the button inside #title-screen -->
+    <button id="startGameBtn">Start Game</button>
   </div>
-  <button id="startGameBtn">Start Game</button>
 
-<script>
-  // When the button is clicked, go to the game.html page
-  document.getElementById("startGameBtn").addEventListener("click", () => {
-    window.location.href = "game.html";
-  });
-</script>
-
+  <script>
+    // When the button is clicked, go to the game.html page
+    document.getElementById("startGameBtn").addEventListener("click", () => {
+      window.location.href = "game.html";
+    });
+  </script>
 </body>
 </html>
