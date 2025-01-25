@@ -74,30 +74,37 @@
 
     let currentIndex = 0;     // Which clip is currently selected
     let isPlaying = false;    // Whether audio is currently playing
+    let isFirstPlay = true;   // To track if it's the first time user clicks Play
     const audioEl = document.getElementById('audioElement');
     const signEl = document.getElementById('sign');
     const playBtn = document.getElementById('playBtn');
 
-    // 2. Load the current track's audio source and sign text
+    // 2. Define a function to load the current track
     function loadTrack(index) {
       if (index < playlist.length) {
         audioEl.src = playlist[index].src;
         signEl.textContent = playlist[index].signText;
       } else {
-        // No more tracks: clear everything
+        // No more tracks
         audioEl.src = '';
         signEl.textContent = '';
       }
     }
 
-    // Initially load the first track (but do NOT auto-play)
-    loadTrack(currentIndex);
+    // Do NOT load a track immediately on page load, so #sign is blank to start.
+    // loadTrack(currentIndex);  <-- (removed this line)
 
-    // 3. Play all clips continuously on button click
+    // 3. Only load/play when user clicks Play
     playBtn.addEventListener('click', () => {
+      // If it's the first click, load the first track.
+      if (isFirstPlay) {
+        loadTrack(currentIndex);
+        isFirstPlay = false;
+      }
+
+      // Then play the audio
       audioEl.play();
-      // Optionally disable button to prevent multiple clicks
-      playBtn.disabled = true;
+      playBtn.disabled = true; // Optional: prevent multiple clicks
     });
 
     // 4. When each clip ends, load/play the next one automatically
@@ -115,6 +122,7 @@
     // 5. If the user pauses in the middle, record isPlaying as false
     audioEl.addEventListener('pause', () => {
       isPlaying = false;
+      playBtn.disabled = false; // Re-enable if you want to let them continue
     });
   </script>
 </body>
