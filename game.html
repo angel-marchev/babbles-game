@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game Screen Example</title>
+  <title>Audio Playlist Example</title>
   <style>
     body {
       margin: 0;
@@ -14,10 +14,11 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
+      text-align: center;
     }
 
-    #game-screen {
-      text-align: center;
+    h1 {
+      margin-bottom: 1rem;
     }
 
     button {
@@ -35,10 +36,10 @@
       background: #0056b3;
     }
 
-    /* The "That is embarrassing" sign */
-    #embarrassingSign {
+    /* The blinking sign */
+    #blinkingSign {
       margin-top: 2rem;
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: bold;
       color: #e63946; /* A red tone for emphasis */
       opacity: 1;
@@ -57,38 +58,74 @@
   </style>
 </head>
 <body>
-  <div id="game-screen">
-    <h1>Game Screen</h1>
-    <button id="playBtn">Play</button>
-    
-    <!-- The sign that flashes while audio is playing -->
-    <div id="embarrassingSign">That is embarrassing</div>
+  <h1>Consecutive Audio Clips Demo</h1>
+  <button id="playBtn">Play Playlist</button>
 
-    <!-- Your audio element (replace src with your real file) -->
-    <audio id="audio" src="audio/soundclip_full.mp3"></audio>
-  </div>
+  <!-- Blinking sign -->
+  <div id="blinkingSign"></div>
+
+  <!-- Single audio element -->
+  <audio id="audioElement"></audio>
 
   <script>
+    // 1. Define your playlist: an array of objects { src, signText }
+    const playlist = [
+      { src: 'audio/clip1.mp3', signText: 'That is embarrassing' },
+      { src: 'audio/clip2.mp3', signText: 'that isn’t my receipt' },
+      { src: 'audio/clip3.mp3', signText: 'lactates in pharmacy' },
+      { src: 'audio/clip4.mp3', signText: 'baptism piracy' },
+      ];
+
+    let currentIndex = 0;   // Keep track of which clip is playing
+    const audioEl = document.getElementById('audioElement');
+    const blinkSign = document.getElementById('blinkingSign');
     const playBtn = document.getElementById('playBtn');
-    const audioEl = document.getElementById('audio');
-    const embarrassingSign = document.getElementById('embarrassingSign');
 
-    // When the user clicks Play:
+    // 2. Load the next track and update blinking text
+    function loadTrack(index) {
+      if (index < playlist.length) {
+        audioEl.src = playlist[index].src;
+        blinkSign.textContent = playlist[index].signText;
+      } else {
+        // No more tracks in the playlist
+        blinkSign.textContent = 'All clips finished!';
+      }
+    }
+
+    // 3. Handle "Play" button
     playBtn.addEventListener('click', () => {
-      // Start playing audio
+      // If we're at the beginning, load the first track
+      if (currentIndex === 0) {
+        loadTrack(currentIndex);
+      }
+      // Start playing
       audioEl.play();
-
-      // Add the 'flash' class to make the text blink
-      embarrassingSign.classList.add('flash');
+      // Start blinking
+      blinkSign.classList.add('flash');
     });
 
-    // When the audio finishes (or is paused/stopped),
-    // remove the flashing class
+    // 4. When audio ends, move to the next track automatically
     audioEl.addEventListener('ended', () => {
-      embarrassingSign.classList.remove('flash');
+      // Stop blinking for the old track
+      blinkSign.classList.remove('flash');
+
+      // Move to next track
+      currentIndex++;
+      if (currentIndex < playlist.length) {
+        loadTrack(currentIndex);
+        // Play the new track
+        audioEl.play();
+        // Start blinking again
+        blinkSign.classList.add('flash');
+      } else {
+        // No more tracks
+        blinkSign.textContent = 'All clips finished!';
+      }
     });
+
+    // 5. Also stop blinking if the user pauses/stops the audio
     audioEl.addEventListener('pause', () => {
-      embarrassingSign.classList.remove('flash');
+      blinkSign.classList.remove('flash');
     });
   </script>
 </body>
