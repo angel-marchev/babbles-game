@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Game Screen Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: #f3f3f3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #game-screen {
+      text-align: center;
+    }
+
+    button {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #007BFF;
+      color: white;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    /* The "That is embarrassing" sign */
+    #embarrassingSign {
+      margin-top: 2rem;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #e63946; /* A red tone for emphasis */
+      opacity: 1;
+    }
+
+    /* Flashing animation */
+    .flash {
+      animation: flash 1s infinite;
+    }
+
+    @keyframes flash {
+      0%   { opacity: 1; }
+      50%  { opacity: 0; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-screen">
+    <h1>Game Screen</h1>
+    <button id="playBtn">Play</button>
+    
+    <!-- The sign that flashes while audio is playing -->
+    <div id="embarrassingSign">That is embarrassing</div>
+
+    <!-- Your audio element (replace src with your real file) -->
+    <audio id="audio" src="audio/your-audio-file.mp3"></audio>
+  </div>
+
+  <script>
+    const playBtn = document.getElementById('playBtn');
+    const audioEl = document.getElementById('audio');
+    const embarrassingSign = document.getElementById('embarrassingSign');
+
+    // When the user clicks Play:
+    playBtn.addEventListener('click', () => {
+      // Start playing audio
+      audioEl.play();
+
+      // Add the 'flash' class to make the text blink
+      embarrassingSign.classList.add('flash');
+    });
+
+    // When the audio finishes (or is paused/stopped),
+    // remove the flashing class
+    audioEl.addEventListener('ended', () => {
+      embarrassingSign.classList.remove('flash');
+    });
+    audioEl.addEventListener('pause', () => {
+      embarrassingSign.classList.remove('flash');
+    });
+  </script>
+</body>
+</html>
