@@ -21,6 +21,7 @@
       margin-bottom: 1rem;
     }
 
+    /* Play/Stop button */
     button {
       font-size: 1.2rem;
       padding: 0.5rem 1rem;
@@ -30,102 +31,91 @@
       background: #007BFF;
       color: white;
       transition: background 0.3s;
+      margin-top: 1rem;
     }
-
     button:hover {
       background: #0056b3;
     }
 
-    /* The blinking sign */
-    #blinkingSign {
+    /* Static sign (no flashing) */
+    #sign {
       margin-top: 2rem;
       font-size: 1.5rem;
       font-weight: bold;
       color: #e63946; /* A red tone for emphasis */
-      opacity: 1;
-    }
-
-    /* Flashing animation */
-    .flash {
-      animation: flash 1s infinite;
-    }
-
-    @keyframes flash {
-      0%   { opacity: 1; }
-      50%  { opacity: 0; }
-      100% { opacity: 1; }
     }
   </style>
 </head>
 <body>
   <h1>Consecutive Audio Clips Demo</h1>
-  <button id="playBtn">Play Playlist</button>
+  <button id="playBtn">Play / Stop</button>
 
-  <!-- Blinking sign -->
-  <div id="blinkingSign"></div>
+  <div id="sign"></div>
 
   <!-- Single audio element -->
   <audio id="audioElement"></audio>
 
   <script>
-    // 1. Define your playlist: an array of objects { src, signText }
+    // 1. Define your playlist: an array of { src, signText }
     const playlist = [
       { src: 'audio/clip1.mp3', signText: 'That is embarrassing' },
-      { src: 'audio/clip2.mp3', signText: 'that isn’t my receipt' },
-      { src: 'audio/clip3.mp3', signText: 'lactates in pharmacy' },
-      { src: 'audio/clip4.mp3', signText: 'baptism piracy' },
-      ];
+      { src: 'audio/clip2.mp3', signText: 'This is hilarious' },
+      { src: 'audio/clip3.mp3', signText: 'Wait, what?!' },
+      { src: 'audio/clip4.mp3', signText: 'Is that a babble?' },
+      { src: 'audio/clip5.mp3', signText: 'Mind the illusions!' }
+    ];
 
-    let currentIndex = 0;   // Keep track of which clip is playing
+    let currentIndex = 0;     // Which clip is currently selected
+    let isPlaying = false;    // Whether audio is currently playing
     const audioEl = document.getElementById('audioElement');
-    const blinkSign = document.getElementById('blinkingSign');
+    const signEl = document.getElementById('sign');
     const playBtn = document.getElementById('playBtn');
 
-    // 2. Load the next track and update blinking text
+    // 2. Load the current track's audio source and sign text
     function loadTrack(index) {
       if (index < playlist.length) {
         audioEl.src = playlist[index].src;
-        blinkSign.textContent = playlist[index].signText;
+        signEl.textContent = playlist[index].signText;
       } else {
-        // No more tracks in the playlist
-        blinkSign.textContent = 'All clips finished!';
+        // No more tracks: clear everything
+        audioEl.src = '';
+        signEl.textContent = '';
       }
     }
 
-    // 3. Handle "Play" button
+    // Initially load the first track (but do NOT auto-play)
+    loadTrack(currentIndex);
+
+    // 3. The button toggles between play and stop
     playBtn.addEventListener('click', () => {
-      // If we're at the beginning, load the first track
-      if (currentIndex === 0) {
-        loadTrack(currentIndex);
+      if (!isPlaying && audioEl.src) {
+        // If NOT currently playing (isPlaying==false) and we have a valid src:
+        audioEl.play();
+        isPlaying = true;
+      } else {
+        // If already playing, or no valid src, then pause/stop
+        audioEl.pause();
+        isPlaying = false;
       }
-      // Start playing
-      audioEl.play();
-      // Start blinking
-      blinkSign.classList.add('flash');
     });
 
-    // 4. When audio ends, move to the next track automatically
+    // 4. When the current track ends, move to the next track (but do not auto-play)
     audioEl.addEventListener('ended', () => {
-      // Stop blinking for the old track
-      blinkSign.classList.remove('flash');
-
-      // Move to next track
+      isPlaying = false;
       currentIndex++;
+
+      // If more tracks remain, load the next one
       if (currentIndex < playlist.length) {
         loadTrack(currentIndex);
-        // Play the new track
-        audioEl.play();
-        // Start blinking again
-        blinkSign.classList.add('flash');
       } else {
-        // No more tracks
-        blinkSign.textContent = 'All clips finished!';
+        // No more tracks, clear the sign
+        signEl.textContent = '';
       }
     });
 
-    // 5. Also stop blinking if the user pauses/stops the audio
+    // 5. If the user pauses in the middle, record isPlaying as false
     audioEl.addEventListener('pause', () => {
-      blinkSign.classList.remove('flash');
+      isPlaying = false;
     });
   </script>
 </body>
