@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>BABBLES - Title Screen</title>
   <style>
-  <style>
     body {
       background-color: black;        /* Black background */
       color: #FAFAFA;                /* Light/white text for contrast */
@@ -16,7 +15,26 @@
       white-space: pre;              /* Preserve ASCII art spacing */
       text-align: center;            /* Center align the text within its container */
     }
-  </style>
+     /* 
+      Old typewriter style:
+      - Use a monospaced typewriter font (e.g., Courier New).
+      - Slightly increase letter-spacing and line-height for a typed feel.
+      - Optional: add a subtle text-shadow or color tweak to emulate older ink. 
+    */
+    .typewriter {
+      font-family: "Courier New", Courier, monospace;
+      text-align: center;
+      font-size: 1.1em;
+      letter-spacing: 0.05em;    /* a bit of spacing between letters */
+      line-height: 1.4;         /* space out lines */
+      margin: 0 auto;           /* center the block on the page */
+      max-width: 600px;         /* optional: restrict width for neat layout */
+      
+      /* Optional: a little "ink bleed" effect via text-shadow */
+      text-shadow: 
+        0.03em 0.03em 0.04em rgba(0, 0, 0, 0.4),
+        -0.02em -0.02em 0.03em rgba(255, 255, 255, 0.1);
+    }
     
     /* Basic styling for demonstration */
     body, html {
@@ -74,7 +92,7 @@
 </pre>
   <div id="title-screen">
     <!--<h1>BABBLES</h1>-->
-    <div class="definition">
+    <div class="typewritter">
       <strong>noun</strong><br />
       <em>plural noun: babbles</em><br /><br />
       1. the sound of people talking simultaneously.<br />
