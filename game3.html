@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Game + Firebase Integration</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: black;
+      color: #FAFAFA;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      text-align: center;
+    }
+    h1 {
+      margin-top: 1rem;
+    }
+    button {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #007BFF;
+      color: white;
+      transition: background 0.3s;
+      margin: 0.5rem;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #topButtons {
+      margin-top: 1rem;
+    }
+    #sign {
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow:
+        -1px 0 red,
+         1px 0 red,
+         0 -1px red,
+         0  1px red;
+      -webkit-text-stroke: 1px red;
+      -webkit-text-fill-color: #fff;
+      min-height: 2em;
+    }
+    #playedSigns {
+      margin-top: 2rem;
+      width: 80%;
+      text-align: center;
+    }
+    #choiceContainer {
+      margin-top: 2rem;
+    }
+    #withPercentageContainer {
+      margin-top: 2rem;
+      width: 80%;
+      text-align: center;
+    }
+    #reorderContainer {
+      margin-top: 2rem;
+      width: 50%;
+      text-align: left;
+    }
+    .draggable-item {
+      padding: 0.5rem;
+      margin: 0.3rem 0;
+      background-color: #333;
+      border: 1px solid #555;
+      cursor: move;
+      user-select: none; 
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.6.6/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.6/firebase-firestore.js"></script>
+</head>
+<body>
+  <h1>Game with Firebase</h1>
+  <div id="topButtons">
+    <button id="restartBtn">Restart Game</button>
+  </div>
+  <div id="sign"></div>
+  <div id="playedSigns"></div>
+  <div id="choiceContainer"></div>
+  <div id="withPercentageContainer"></div>
+  <div id="reorderContainer"></div>
+  <audio id="audioElement"></audio>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Variables
+    const restartBtn = document.getElementById("restartBtn");
+    const audioEl = document.getElementById("audioElement");
+    const signEl = document.getElementById("sign");
+    const playedSignsContainer = document.getElementById("playedSigns");
+    const choiceContainer = document.getElementById("choiceContainer");
+    const withPercentageContainer = document.getElementById("withPercentageContainer");
+    const reorderContainer = document.getElementById("reorderContainer");
+
+    let chosenSignIndexes = [];
+    let currentIndex = 0;
+    let userSelectionIndex = null;
+    let finalFourTexts = [];
+    let frequencyNumbers = [];
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function startNewGame() {
+      audioEl.pause();
+      audioEl.currentTime = 0;
+      chosenSignIndexes = [];
+      currentIndex = 0;
+      userSelectionIndex = null;
+      finalFourTexts = [];
+      frequencyNumbers = [];
+
+      signEl.textContent = "";
+      playedSignsContainer.innerHTML = "";
+      choiceContainer.innerHTML = "";
+      withPercentageContainer.innerHTML = "";
+      reorderContainer.innerHTML = "";
+
+      chosenSignIndexes = pick4RandomSignIndexes();
+      loadTrack(currentIndex);
+    }
+
+    function pick4RandomSignIndexes() {
+      const allIndexes = Array.from({ length: possibleSigns.length }, (_, i) => i);
+      shuffleArray(allIndexes);
+      return allIndexes.slice(0, 4);
+    }
+
+    function loadTrack(index) {
+      if (index < audioPlaylist.length) {
+        audioEl.src = audioPlaylist[index];
+        audioEl.onplay = () => {
+          signEl.textContent = possibleSigns[chosenSignIndexes[index]];
+        };
+      } else {
+        audioEl.src = "";
+        signEl.textContent = "";
+      }
+    }
+
+    async function sendDataToFirebase() {
+      try {
+        await db.collection("gameData").add({
+          chosenSignIndexes: chosenSignIndexes,
+          userSelectionIndex: userSelectionIndex
+        });
+      } catch (error) {
+        console.error("Error writing to Firebase:", error);
+      }
+    }
+
+    async function fetchfrequencyNumbersFromFirebase() {
+      try {
+        const doc = await db.collection("randomData").doc("frequencyNumbers").get();
+        if (doc.exists) {
+          frequencyNumbers = doc.data().values;
+          displayfrequencyNumbersWithSigns();
+        } else {
+          console.error("No such document in Firebase!");
+        }
+      } catch (error) {
+        console.error("Error reading from Firebase:", error);
+      }
+    }
+
+    function createRadioButtonsAndSubmit() {
+      choiceContainer.innerHTML = "";
+
+      chosenSignIndexes.forEach((signIdx, i) => {
+        const div = document.createElement("div");
+        div.classList.add("choiceItem");
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "signSelection";
+        input.id = "signOption" + i;
+        input.value = signIdx;
+
+        const label = document.createElement("label");
+        label.htmlFor = input.id;
+        label.textContent = possibleSigns[signIdx];
+
+        div.appendChild(input);
+        div.appendChild(label);
+        choiceContainer.appendChild(div);
+      });
+
+      const submitBtn = document.createElement("button");
+      submitBtn.textContent = "Submit";
+      submitBtn.addEventListener("click", () => {
+        const selectedRadio = document.querySelector("input[name='signSelection']:checked");
+        if (!selectedRadio) {
+          alert("Please select one of the options first.");
+          return;
+        }
+        userSelectionIndex = parseInt(selectedRadio.value, 10);
+        sendDataToFirebase();
+        fetchfrequencyNumbersFromFirebase();
+      });
+      choiceContainer.appendChild(submitBtn);
+    }
+
+    restartBtn.addEventListener("click", startNewGame);
+    window.onload = startNewGame;
+  </script>
+</body>
+</html>
