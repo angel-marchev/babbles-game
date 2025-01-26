@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game + Firebase Integration</title>
+  <title>Game with Firebase</title>
   <style>
     body {
       margin: 0;
@@ -78,36 +78,27 @@
       user-select: none; 
     }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.6.6/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.6/firebase-firestore.js"></script>
-</head>
-<body>
-  <h1>Game with Firebase</h1>
-  <div id="topButtons">
-    <button id="restartBtn">Restart Game</button>
-  </div>
-  <div id="sign"></div>
-  <div id="playedSigns"></div>
-  <div id="choiceContainer"></div>
-  <div id="withPercentageContainer"></div>
-  <div id="reorderContainer"></div>
-  <audio id="audioElement"></audio>
+  <script type="module">
+    // Import Firebase functions
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.6/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.6/firebase-firestore.js";
 
-  <script>
-    // Firebase configuration
+    // Your web app's Firebase configuration
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyDns6jjkJ4mtnuMJS3e2MiDu4BJ1-x2EW8",
+      authDomain: "babbles-game.firebaseapp.com",
+      projectId: "babbles-game",
+      storageBucket: "babbles-game.appspot.com",
+      messagingSenderId: "186174955455",
+      appId: "1:186174955455:web:b4df11fec26f57ea530b0a",
+      measurementId: "G-323JPSVTFM"
     };
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
 
-    // Variables
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Game Variables
     const restartBtn = document.getElementById("restartBtn");
     const audioEl = document.getElementById("audioElement");
     const signEl = document.getElementById("sign");
@@ -115,6 +106,20 @@
     const choiceContainer = document.getElementById("choiceContainer");
     const withPercentageContainer = document.getElementById("withPercentageContainer");
     const reorderContainer = document.getElementById("reorderContainer");
+
+    const possibleSigns = [
+      "That is embarrassing",
+      "that isn’t my receipt",
+      "lactates in pharmacy",
+      "baptism piracy"
+    ];
+
+    const audioPlaylist = [
+      "audio/clip1.mp3",
+      "audio/clip2.mp3",
+      "audio/clip3.mp3",
+      "audio/clip4.mp3"
+    ];
 
     let chosenSignIndexes = [];
     let currentIndex = 0;
@@ -169,26 +174,29 @@
 
     async function sendDataToFirebase() {
       try {
-        await db.collection("gameData").add({
+        await setDoc(doc(db, "gameData", "latest"), {
           chosenSignIndexes: chosenSignIndexes,
           userSelectionIndex: userSelectionIndex
         });
+        console.log("Data successfully sent to Firebase!");
       } catch (error) {
-        console.error("Error writing to Firebase:", error);
+        console.error("Error sending data to Firebase:", error);
       }
     }
 
-    async function fetchfrequencyNumbersFromFirebase() {
+    async function fetchFrequencyNumbersFromFirebase() {
       try {
-        const doc = await db.collection("randomData").doc("frequencyNumbers").get();
-        if (doc.exists) {
-          frequencyNumbers = doc.data().values;
-          displayfrequencyNumbersWithSigns();
+        const docRef = doc(db, "frequencyData", "latest");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          frequencyNumbers = docSnap.data().values;
+          displayFrequencyNumbersWithSigns();
         } else {
-          console.error("No such document in Firebase!");
+          console.error("No frequency data found in Firebase!");
         }
       } catch (error) {
-        console.error("Error reading from Firebase:", error);
+        console.error("Error fetching frequency data from Firebase:", error);
       }
     }
 
@@ -216,17 +224,30 @@
 
       const submitBtn = document.createElement("button");
       submitBtn.textContent = "Submit";
-      submitBtn.addEventListener("click", () => {
+      submitBtn.addEventListener("click", async () => {
         const selectedRadio = document.querySelector("input[name='signSelection']:checked");
         if (!selectedRadio) {
           alert("Please select one of the options first.");
           return;
         }
         userSelectionIndex = parseInt(selectedRadio.value, 10);
-        sendDataToFirebase();
-        fetchfrequencyNumbersFromFirebase();
+        await sendDataToFirebase();
+        await fetchFrequencyNumbersFromFirebase();
       });
       choiceContainer.appendChild(submitBtn);
+    }
+
+    function displayFrequencyNumbersWithSigns() {
+      const lines = playedSignsContainer.querySelectorAll("p");
+
+      lines.forEach((p, i) => {
+        p.textContent = p.textContent + " " + frequencyNumbers[i];
+      });
+
+      const continueBtn = document.createElement("button");
+      continueBtn.textContent = "Continue";
+      continueBtn.addEventListener("click", setupReorderUI);
+      playedSignsContainer.appendChild(continueBtn);
     }
 
     restartBtn.addEventListener("click", startNewGame);
