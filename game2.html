@@ -250,12 +250,26 @@
     function loadTrack(index) {
       if (index < audioPlaylist.length) {
         audioEl.src = audioPlaylist[index];
-        signEl.textContent = possibleSigns[ chosenSignIndexes[index] ];
+        // Delay showing the sign until the audio plays
+        audioEl.onplay = () => {
+          signEl.textContent = possibleSigns[chosenSignIndexes[index]];
+        };
       } else {
         audioEl.src = "";
         signEl.textContent = "";
       }
     }
+
+    restartBtn.addEventListener("click", () => {
+    // Ensure user interaction before starting playback
+    startNewGame();
+    audioEl.play().catch((err) => {
+      console.error("Audio playback failed:", err.message);
+    });
+  });
+
+  // Prevent autoplay on page load
+  window.onload = startNewGame;
 
     // Each clip ended => add that line to playedSigns
     audioEl.addEventListener("ended", () => {
