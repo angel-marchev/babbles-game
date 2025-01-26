@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game + Random Number % + Reorder (Signs Only)</title>
+  <title>Game + Random Numbers Displayed + Reorder + Poem Page</title>
   <style>
     body {
       margin: 0;
@@ -84,6 +84,20 @@
       cursor: pointer;
     }
 
+    /* Container to display lines with random percentages */
+    #withPercentageContainer {
+      margin-top: 2rem;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+    }
+    #withPercentageContainer p {
+      margin: 0.5rem 0;
+      color: #FAFAFA;
+      font-size: 1.2rem;
+    }
+
     /* Reorder container */
     #reorderContainer {
       margin-top: 2rem;
@@ -116,6 +130,9 @@
 
   <!-- Radio buttons and "Submit" after all 4 are played -->
   <div id="choiceContainer"></div>
+
+  <!-- Container to display lines with random percentages -->
+  <div id="withPercentageContainer"></div>
 
   <!-- Drag & drop reorder UI (shown after we display random numbers) -->
   <div id="reorderContainer"></div>
@@ -154,12 +171,13 @@
     // ---------------------------------------------------------
     // ELEMENTS
     // ---------------------------------------------------------
-    const restartBtn          = document.getElementById("restartBtn");
-    const audioEl             = document.getElementById("audioElement");
-    const signEl              = document.getElementById("sign");
-    const playedSignsContainer = document.getElementById("playedSigns");
-    const choiceContainer     = document.getElementById("choiceContainer");
-    const reorderContainer    = document.getElementById("reorderContainer");
+    const restartBtn            = document.getElementById("restartBtn");
+    const audioEl               = document.getElementById("audioElement");
+    const signEl                = document.getElementById("sign");
+    const playedSignsContainer  = document.getElementById("playedSigns");
+    const choiceContainer       = document.getElementById("choiceContainer");
+    const withPercentageContainer = document.getElementById("withPercentageContainer");
+    const reorderContainer      = document.getElementById("reorderContainer");
 
     // ---------------------------------------------------------
     // STATE
@@ -212,6 +230,7 @@
       signEl.textContent             = "";
       playedSignsContainer.innerHTML = "";
       choiceContainer.innerHTML      = "";
+      withPercentageContainer.innerHTML= "";
       reorderContainer.innerHTML     = "";
 
       // Pick 4 random indexes
@@ -345,7 +364,7 @@
       reorderContainer.innerHTML = "";
 
       const reorderTitle = document.createElement("h2");
-      reorderTitle.textContent = "Reorder the 4 lines however you like (numbers not shown here):";
+      reorderTitle.textContent = "Reorder the 4 lines however you like:";
       reorderContainer.appendChild(reorderTitle);
 
       // A list container
@@ -380,12 +399,15 @@
       container.addEventListener("dragstart", (e) => {
         if (e.target.classList.contains("draggable-item")) {
           draggedItem = e.target;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/html", draggedItem.innerHTML);
         }
       });
       container.addEventListener("dragover", (e) => {
         e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
         const afterElement = getDragAfterElement(container, e.clientY);
-        if (!afterElement) {
+        if (afterElement == null) {
           container.appendChild(draggedItem);
         } else {
           container.insertBefore(draggedItem, afterElement);
@@ -421,14 +443,108 @@
         finalOrder.push(item.textContent);
       });
 
-      // Just a demonstration
-      alert("Final Reordered Lines:\n" + finalOrder.join("\n"));
+      // Now, generate and open the poem page
+      displayPoemInNewPage(finalOrder);
+    }
+
+    // ---------------------------------------------------------
+    // OPEN A NEW PAGE WITH THE "POEM"
+    // ---------------------------------------------------------
+    function displayPoemInNewPage(linesArray) {
+      // Create a new tab
+      const newWin = window.open("", "_blank");
+      // We'll write a full HTML structure into it:
+      newWin.document.write(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Your Poem</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: black;
+      color: #FAFAFA;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      text-align: center;
+      position: relative;
+    }
+    h1 {
+      margin-top: 1rem;
+      font-size: 2rem;
+      text-decoration: underline;
+      position: relative;
+      z-index: 2;
+    }
+    /* Decorative corners */
+    .corner-deco {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background-repeat: no-repeat;
+      background-size: contain;
+      opacity: 0.3;
+      z-index: 1;
+    }
+    .corner-top-left {
+      top: 0;
+      left: 0;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
+      transform: rotate(0deg);
+    }
+    .corner-top-right {
+      top: 0;
+      right: 0;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
+      transform: scaleX(-1);
+    }
+    .corner-bottom-left {
+      bottom: 0;
+      left: 0;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
+      transform: scaleY(-1);
+    }
+    .corner-bottom-right {
+      bottom: 0;
+      right: 0;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
+      transform: scaleX(-1) scaleY(-1);
+    }
+    .poem-line {
+      margin: 0.5rem 0;
+      font-size: 1.4rem;
+      z-index: 2; /* above corner images */
+    }
+  </style>
+</head>
+<body>
+  <!-- Decorative corners -->
+  <div class="corner-deco corner-top-left"></div>
+  <div class="corner-deco corner-top-right"></div>
+  <div class="corner-deco corner-bottom-left"></div>
+  <div class="corner-deco corner-bottom-right"></div>
+
+  <h1>Your Poem</h1>
+  ${linesArray.map(line => `<div class="poem-line">${line}</div>`).join("\n")}
+</body>
+</html>
+      `);
+      newWin.document.close();
     }
 
     // ---------------------------------------------------------
     // HOOK UP THE RESTART BUTTON
     // ---------------------------------------------------------
     restartBtn.addEventListener("click", startNewGame);
+
+    // Start the game automatically when the page loads
+    window.onload = startNewGame;
   </script>
 </body>
 </html>
