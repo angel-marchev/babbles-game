@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game with Random Signs (Stroke Only While Playing)</title>
+  <title>Game with Random Sign Indices + Radio Buttons</title>
   <style>
     body {
       margin: 0;
@@ -13,13 +13,14 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start; /* So we have room for the appended signs */
+      justify-content: flex-start;
       height: 100vh;
       text-align: center;
     }
 
-    h1 {
-      margin: 1rem 0 0.5rem 0;
+    /* Top buttons container */
+    #topButtons {
+      margin-top: 1rem;
     }
 
     button {
@@ -31,13 +32,16 @@
       background: #007BFF;
       color: white;
       transition: background 0.3s;
-      margin-top: 1rem;
+      margin: 0.5rem;
     }
     button:hover {
       background: #0056b3;
     }
 
-    /* This element shows the CURRENT sign with stroke effect */
+    h1 {
+      margin: 1rem 0 0.5rem 0;
+    }
+
     #sign {
       margin-top: 2rem;
       font-size: 1.5rem;
@@ -50,10 +54,9 @@
          0  1px red;
       -webkit-text-stroke: 1px red;
       -webkit-text-fill-color: #fff;
-      min-height: 2em; /* just to reserve some space even when empty */
+      min-height: 2em; /* Reserve space even when empty */
     }
 
-    /* Container for all previously played signs in plain white */
     #playedSigns {
       margin-top: 2rem;
       width: 80%;
@@ -62,29 +65,47 @@
       text-align: center;
     }
 
-    /* Plain white lines in the playedSigns area */
     #playedSigns p {
       margin: 0.5rem 0;
-      color: #FAFAFA; /* no stroke, just white text */
+      color: #FAFAFA;
       font-size: 1.2rem;
+    }
+
+    /* Container for the radio button choices */
+    #choiceContainer {
+      margin-top: 2rem;
+    }
+    .choiceItem {
+      margin: 0.5rem 0;
+      display: block; /* each choice on its own line */
+    }
+    label {
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <h1>Listen and Watch the Screen</h1>
-  <button id="playBtn">Play / Stop</button>
 
-  <!-- The current sign with stroke effect -->
+  <!-- Top buttons, including "Restart" -->
+  <div id="topButtons">
+    <button id="playBtn">Play / Stop</button>
+    <button onclick="location.reload()">Restart Game</button>
+  </div>
+
+  <!-- Current sign with stroke effect -->
   <div id="sign"></div>
 
-  <!-- Container for previously displayed signs (plain white) -->
+  <!-- Container for played signs in plain white text -->
   <div id="playedSigns"></div>
 
-  <!-- Single audio element -->
+  <!-- Container for the radio button choices (will appear after 4 signs) -->
+  <div id="choiceContainer"></div>
+
   <audio id="audioElement"></audio>
 
   <script>
-    // 1) Possible sign texts
+    // 1) The master list of possible signs (text strings)
     const possibleSigns = [
       "That is embarrassing",
       "that isn’t my receipt",
@@ -100,7 +121,7 @@
       "Battles and Parasites"
     ];
 
-    // 2) Audio playlist (just 4 clips)
+    // 2) Audio playlist (4 clips)
     const audioPlaylist = [
       "audio/clip1.mp3",
       "audio/clip2.mp3",
@@ -108,16 +129,21 @@
       "audio/clip4.mp3"
     ];
 
-    const audioEl = document.getElementById("audioElement");
-    const signEl = document.getElementById("sign");
-    const playBtn = document.getElementById("playBtn");
+    // Elements
+    const audioEl      = document.getElementById("audioElement");
+    const signEl       = document.getElementById("sign");
+    const playBtn      = document.getElementById("playBtn");
     const playedSignsContainer = document.getElementById("playedSigns");
+    const choiceContainer = document.getElementById("choiceContainer");
 
-    let chosenSigns = [];   // Will hold 4 random signs
-    let currentIndex = 0;   // Which clip is currently playing
-    let isFirstPlay = true; // So we only pick random signs once
+    // We'll store the 4 chosen indices + their corresponding text
+    let chosenSignIndexes = [];
+    let chosenSigns = []; // text strings derived from chosenSignIndexes
 
-    // Utility: shuffle array in-place (Fisher-Yates)
+    let currentIndex = 0;   // which audio clip is currently playing
+    let isFirstPlay = true; // so we only pick random signs once
+
+    // Shuffle utility (Fisher-Yates)
     function shuffleArray(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -126,44 +152,49 @@
       return arr;
     }
 
-    // Pick 4 random signs & shuffle them so their order is random
-    function pickRandomSigns() {
-      const cloned = [...possibleSigns];
-      shuffleArray(cloned);        // shuffle the big list
-      const selected = cloned.slice(0, 4); // get first 4
-      shuffleArray(selected);       // shuffle those 4 again if you want random order
-      return selected;
+    // 3) Pick 4 random *indices*, store them in chosenSignIndexes
+    function pickRandomSignIndexes() {
+      // We only need 4 unique indexes out of possibleSigns' length
+      const total = possibleSigns.length;
+      // Build an array of all indexes [0..n-1], shuffle it, then slice first 4
+      let allIndexes = Array.from({length: total}, (_,i)=>i);
+      shuffleArray(allIndexes);
+      return allIndexes.slice(0,4);
     }
 
     function loadTrack(index) {
       if (index < audioPlaylist.length) {
         audioEl.src = audioPlaylist[index];
-        // Show the sign with stroke effect
+        // Display the stroke text for the current sign
         signEl.textContent = chosenSigns[index];
       } else {
-        // No more tracks
         audioEl.src = "";
         signEl.textContent = "";
       }
     }
 
-    // 5) Handle Play button
+    // 4) "Play" button
     playBtn.addEventListener("click", () => {
       if (isFirstPlay) {
-        // 1) pick random signs
-        chosenSigns = pickRandomSigns();
-        // 2) load the first track
+        // a) pick 4 random indexes
+        chosenSignIndexes = pickRandomSignIndexes();
+        // b) derive the chosen sign texts from those indexes
+        chosenSigns = chosenSignIndexes.map(i => possibleSigns[i]);
+        // c) shuffle chosenSigns if you want them in a random order each time
+        shuffleArray(chosenSigns);
+
+        // d) load the first track
         loadTrack(currentIndex);
         isFirstPlay = false;
       }
-      // Start audio
+      // Play
       audioEl.play();
       playBtn.disabled = true;
     });
 
-    // 6) After each clip ends, append that sign in plain white, then go to next
+    // 5) Each time a clip ends:
     audioEl.addEventListener("ended", () => {
-      // Add the just-played sign to the #playedSigns container in plain text
+      // Append the just-played sign in plain white to #playedSigns
       const p = document.createElement("p");
       p.textContent = chosenSigns[currentIndex];
       playedSignsContainer.appendChild(p);
@@ -174,15 +205,55 @@
         loadTrack(currentIndex);
         audioEl.play();
       } else {
-        // No more clips - clear the current sign
-        signEl.textContent = "";
+        // We have displayed all 4 signs.
+        signEl.textContent = ""; // Clear the stroke effect area
+
+        // Now that all 4 are shown, let's create radio buttons
+        createRadioButtons();
       }
     });
 
-    // 7) If user pauses, allow them to resume
     audioEl.addEventListener("pause", () => {
+      // Allow user to un-pause
       playBtn.disabled = false;
     });
+
+    // 6) Create radio button choices for the 4 displayed signs
+    //    The user can pick exactly one of them.
+    function createRadioButtons() {
+      // Clear out #choiceContainer in case we do this multiple times (optional)
+      choiceContainer.innerHTML = "";
+
+      // Maybe add a heading or instructions
+      const info = document.createElement("p");
+      info.textContent = "Choose one of the 4 displayed signs:";
+      choiceContainer.appendChild(info);
+
+      // For each chosen sign, create a radio input + label
+      chosenSigns.forEach((signText, index) => {
+        const div = document.createElement("div");
+        div.classList.add("choiceItem");
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "signSelection";
+        input.id = "signOption" + index;
+        // 'value' could store the sign text or the chosenSignIndex
+        input.value = signText; 
+        // If you prefer the numeric index from possibleSigns, use:
+        // input.value = chosenSignIndexes[index];
+
+        const label = document.createElement("label");
+        label.htmlFor = input.id;
+        label.textContent = signText;
+
+        // Append radio + label
+        div.appendChild(input);
+        div.appendChild(label);
+
+        choiceContainer.appendChild(div);
+      });
+    }
   </script>
 </body>
 </html>
