@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game + Random Numbers Displayed + Reorder</title>
+  <title>Game + Random Number % + Reorder (Signs Only)</title>
   <style>
     body {
       margin: 0;
@@ -171,7 +171,7 @@
     // We'll store the final 4 lines (in the order they were played) for reordering
     let finalFourTexts    = [];
 
-    // We'll store 4 random numbers to display next to each item
+    // We'll store 4 random numbers (including the '%' sign) to display next to each item
     let randomNumbers     = [];
 
     // ---------------------------------------------------------
@@ -185,12 +185,12 @@
       return arr;
     }
 
-    // Generate an array of 4 random numbers (0–99% for example)
-    function generate4RandomNumbers() {
+    // Generate an array of 4 random percentages, like "42%"
+    function generate4RandomPercentages() {
       let arr = [];
       for (let i = 0; i < 4; i++) {
         let val = Math.floor(Math.random() * 100); // 0..99
-        arr.push(val);
+        arr.push(val + "%");
       }
       return arr;
     }
@@ -311,8 +311,8 @@
       // Remove radio UI
       choiceContainer.innerHTML = "";
 
-      // 1) Generate 4 random numbers
-      randomNumbers = generate4RandomNumbers();
+      // 1) Generate 4 random percentages
+      randomNumbers = generate4RandomPercentages();
       // 2) Append them to the existing lines in #playedSigns
       displayRandomNumbersWithSigns();
     }
@@ -325,9 +325,8 @@
       // We have 4 lines (p elements) in #playedSigns
       const lines = playedSignsContainer.querySelectorAll("p");
 
-      // For each <p>, append the corresponding random number
+      // For each <p>, append the corresponding random percentage
       lines.forEach((p, i) => {
-        // e.g. "That is embarrassing  73"
         p.textContent = p.textContent + "  " + randomNumbers[i];
       });
 
@@ -342,10 +341,11 @@
     // DRAG-AND-DROP REORDER
     // ---------------------------------------------------------
     function setupReorderUI() {
+      // Clear out any existing content in reorderContainer
       reorderContainer.innerHTML = "";
 
       const reorderTitle = document.createElement("h2");
-      reorderTitle.textContent = "Reorder the 4 lines however you like:";
+      reorderTitle.textContent = "Reorder the 4 lines however you like (numbers not shown here):";
       reorderContainer.appendChild(reorderTitle);
 
       // A list container
@@ -353,28 +353,21 @@
       listEl.id = "draggableList";
       reorderContainer.appendChild(listEl);
 
-      // We rely on finalFourTexts for the reorder content
-      // (Note that these do NOT include the random number text if you only want the sign text.)
-      // If you want the combined sign + random number, you might store them together in finalFourTexts as well.
+      // For reorder, only show the sign text (no numbers)
       finalFourTexts.forEach((text, idx) => {
-        // Combine text + randomNumbers if desired
-        // but typically finalFourTexts has the plain lines, not the appended number.
-        // We'll show them exactly as they appeared in #playedSigns, but you can do either.
-        // If you want them with the random number appended, do so:
-        const combined = text + "  " + randomNumbers[idx];
-
         const item = document.createElement("div");
         item.classList.add("draggable-item");
         item.draggable = true;
-        item.textContent = combined;
+        // Just the sign text:
+        item.textContent = text;
         item.dataset.index = idx;
         listEl.appendChild(item);
       });
 
-      // Attach drag & drop events
+      // Attach drag & drop
       initDragAndDrop(listEl);
 
-      // Add a "Submit Order" button
+      // "Submit Order" button
       const orderBtn = document.createElement("button");
       orderBtn.textContent = "Submit Order";
       orderBtn.addEventListener("click", onSubmitOrder);
@@ -403,7 +396,6 @@
       });
     }
 
-    // Helper to figure out insertion position
     function getDragAfterElement(container, y) {
       const draggableElements = [...container.querySelectorAll(".draggable-item:not(.dragging)")];
 
@@ -429,7 +421,7 @@
         finalOrder.push(item.textContent);
       });
 
-      // For demonstration, let's just alert the final order
+      // Just a demonstration
       alert("Final Reordered Lines:\n" + finalOrder.join("\n"));
     }
 
