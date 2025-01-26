@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game + Reordering + Poem Page</title>
+  <title>Game + Reordering + Random Percents</title>
   <style>
     body {
       margin: 0;
@@ -22,7 +22,6 @@
       margin-top: 1rem;
     }
 
-    /* Button styling */
     button {
       font-size: 1.2rem;
       padding: 0.5rem 1rem;
@@ -85,6 +84,20 @@
       cursor: pointer;
     }
 
+    /* Container to display lines+percentages before reorder */
+    #withPercentageContainer {
+      margin-top: 2rem;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+    }
+    #withPercentageContainer p {
+      margin: 0.5rem 0;
+      color: #FAFAFA;
+      font-size: 1.2rem;
+    }
+
     /* Reorder container */
     #reorderContainer {
       margin-top: 2rem;
@@ -109,7 +122,7 @@
     <button id="restartBtn">Restart Game</button>
   </div>
 
-  <!-- Current sign with stroke -->
+  <!-- Current sign while playing -->
   <div id="sign"></div>
 
   <!-- Container for the four played signs (plain text) -->
@@ -118,7 +131,10 @@
   <!-- Container for radio buttons and "Submit" after all 4 are played -->
   <div id="choiceContainer"></div>
 
-  <!-- Container for reordering items (drag & drop), appears after user picks radio -->
+  <!-- Container to display lines with random percentages -->
+  <div id="withPercentageContainer"></div>
+
+  <!-- Container for reordering items (drag & drop), appears after "Continue" -->
   <div id="reorderContainer"></div>
 
   <!-- Single audio element -->
@@ -155,12 +171,13 @@
     // ---------------------------------------------------------
     // ELEMENTS
     // ---------------------------------------------------------
-    const restartBtn          = document.getElementById("restartBtn");
-    const audioEl             = document.getElementById("audioElement");
-    const signEl              = document.getElementById("sign");
-    const playedSignsContainer = document.getElementById("playedSigns");
-    const choiceContainer     = document.getElementById("choiceContainer");
-    const reorderContainer    = document.getElementById("reorderContainer");
+    const restartBtn            = document.getElementById("restartBtn");
+    const audioEl               = document.getElementById("audioElement");
+    const signEl                = document.getElementById("sign");
+    const playedSignsContainer  = document.getElementById("playedSigns");
+    const choiceContainer       = document.getElementById("choiceContainer");
+    const withPercentageContainer = document.getElementById("withPercentageContainer");
+    const reorderContainer      = document.getElementById("reorderContainer");
 
     // ---------------------------------------------------------
     // STATE
@@ -169,8 +186,11 @@
     let currentIndex      = 0;   // Which audio clip is playing
     let userSelectionIndex = null; // The single sign index chosen by user
 
-    // We'll also store the final 4 lines (strings) for reordering
-    let finalFourTexts    = []; // The four lines that were actually displayed
+    // We'll store the final 4 lines (in the order they're played) for reordering
+    let finalFourTexts    = []; 
+
+    // We'll store four random percentages to display next to each item
+    let randomPercs       = [];
 
     // ---------------------------------------------------------
     // UTILITY: Shuffle array in-place (Fisher-Yates)
@@ -181,6 +201,17 @@
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
       return arr;
+    }
+
+    // Generate 4 random percentages, e.g. "72%"
+    function generateRandomPercentages(count) {
+      let percArr = [];
+      for (let i = 0; i < count; i++) {
+        const rnd = Math.random(); // e.g. 0.72
+        const percent = Math.floor(rnd * 100) + "%"; 
+        percArr.push(percent);
+      }
+      return percArr;
     }
 
     // ---------------------------------------------------------
@@ -194,11 +225,13 @@
       currentIndex        = 0;
       userSelectionIndex  = null;
       finalFourTexts      = [];
+      randomPercs         = [];
 
       // Clear UI
       signEl.textContent               = "";
       playedSignsContainer.innerHTML   = "";
       choiceContainer.innerHTML        = "";
+      withPercentageContainer.innerHTML= "";
       reorderContainer.innerHTML       = "";
 
       // Pick 4 random indexes
@@ -235,15 +268,16 @@
       p.textContent = playedSignText;
       playedSignsContainer.appendChild(p);
 
-      finalFourTexts.push(playedSignText); // store it for reordering later
+      // Save for later reorder
+      finalFourTexts.push(playedSignText);
 
       currentIndex++;
       if (currentIndex < audioPlaylist.length) {
         loadTrack(currentIndex);
         audioEl.play();
       } else {
+        // All 4 have played
         signEl.textContent = "";
-        // All 4 have played => let user choose one sign
         createRadioButtonsAndSubmit();
       }
     });
@@ -292,11 +326,43 @@
         return;
       }
       userSelectionIndex = parseInt(selectedRadio.value, 10);
-      // If you need to do something with userSelectionIndex, do it here
+      // We don't necessarily do anything else with userSelectionIndex here, 
+      // but we have it if needed.
 
-      // Now let user reorder the final four lines
-      choiceContainer.innerHTML = ""; // remove radio UI
-      setupReorderUI();
+      // 1) Remove radio UI
+      choiceContainer.innerHTML = "";
+
+      // 2) Generate four random percentages
+      randomPercs = generateRandomPercentages(4);
+
+      // 3) Display the final four lines with their random percentages
+      displayLinesWithPercentages();
+    }
+
+    // ---------------------------------------------------------
+    // SHOW THE 4 LINES WITH RANDOM PERCENTAGES
+    // THEN A "CONTINUE" BUTTON TO GO TO REORDER
+    // ---------------------------------------------------------
+    function displayLinesWithPercentages() {
+      withPercentageContainer.innerHTML = "";
+
+      // Display them in the same order as finalFourTexts
+      for (let i = 0; i < finalFourTexts.length; i++) {
+        const p = document.createElement("p");
+        p.textContent = `${randomPercs[i]} - ${finalFourTexts[i]}`;
+        withPercentageContainer.appendChild(p);
+      }
+
+      // "Continue" button
+      const continueBtn = document.createElement("button");
+      continueBtn.textContent = "Continue";
+      continueBtn.addEventListener("click", () => {
+        // Clear the display
+        withPercentageContainer.innerHTML = "";
+        // Move on to reorder
+        setupReorderUI();
+      });
+      withPercentageContainer.appendChild(continueBtn);
     }
 
     // ---------------------------------------------------------
@@ -335,7 +401,6 @@
       reorderContainer.appendChild(orderBtn);
     }
 
-    // Basic drag-and-drop logic
     function initDragAndDrop(container) {
       let draggedItem = null;
 
@@ -346,9 +411,8 @@
       });
       container.addEventListener("dragover", (e) => {
         e.preventDefault();
-        // We'll insert before or after, but let's keep it simple
         const afterElement = getDragAfterElement(container, e.clientY);
-        if (afterElement == null) {
+        if (!afterElement) {
           container.appendChild(draggedItem);
         } else {
           container.insertBefore(draggedItem, afterElement);
@@ -359,8 +423,6 @@
       });
     }
 
-    // Utility to figure out the correct item to insert before
-    // (so you can place the dragged item in the correct vertical location)
     function getDragAfterElement(container, y) {
       const draggableElements = [...container.querySelectorAll(".draggable-item:not(.dragging)")];
 
@@ -386,99 +448,9 @@
         finalOrder.push(item.textContent);
       });
 
-      // Now we open a new HTML page (in a new tab) with the poem
-      displayPoemInNewPage(finalOrder);
-    }
-
-    // ---------------------------------------------------------
-    // OPEN A NEW PAGE WITH THE "POEM"
-    // ---------------------------------------------------------
-    function displayPoemInNewPage(linesArray) {
-      // Create a new tab
-      const newWin = window.open("", "_blank");
-      // We'll write a full HTML structure into it:
-      newWin.document.write(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Your Poem</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-      background-color: black;
-      color: #FAFAFA;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      height: 100vh;
-      text-align: center;
-      position: relative;
-    }
-    h1 {
-      margin-top: 1rem;
-      font-size: 2rem;
-      text-decoration: underline;
-      position: relative;
-      z-index: 2;
-    }
-    /* Decorative corners */
-    .corner-deco {
-      position: absolute;
-      width: 80px;
-      height: 80px;
-      background-repeat: no-repeat;
-      background-size: contain;
-      opacity: 0.3;
-      z-index: 1;
-    }
-    .corner-top-left {
-      top: 0;
-      left: 0;
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
-      transform: rotate(0deg);
-    }
-    .corner-top-right {
-      top: 0;
-      right: 0;
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
-      transform: scaleX(-1);
-    }
-    .corner-bottom-left {
-      bottom: 0;
-      left: 0;
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
-      transform: scaleY(-1);
-    }
-    .corner-bottom-right {
-      bottom: 0;
-      right: 0;
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Ornament_baroque_decoration.png');
-      transform: scaleX(-1) scaleY(-1);
-    }
-    .poem-line {
-      margin: 0.5rem 0;
-      font-size: 1.4rem;
-      z-index: 2; /* above corner images */
-    }
-  </style>
-</head>
-<body>
-  <!-- Decorative corners -->
-  <div class="corner-deco corner-top-left"></div>
-  <div class="corner-deco corner-top-right"></div>
-  <div class="corner-deco corner-bottom-left"></div>
-  <div class="corner-deco corner-bottom-right"></div>
-
-  <h1>Your Poem</h1>
-  ${linesArray.map(line => `<div class="poem-line">${line}</div>`).join("\n")}
-</body>
-</html>
-      `);
-      newWin.document.close();
+      // For now, just alert or do something with finalOrder
+      // e.g., open new page or show a message. For brevity:
+      alert("Final Reordered Lines:\n" + finalOrder.join("\n"));
     }
 
     // ---------------------------------------------------------
