@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game with Single Restart and Radio Choice</title>
+  <title>Game with Drag-and-Drop Reorder</title>
   <style>
     body {
       margin: 0;
@@ -22,11 +22,9 @@
       margin-top: 1rem;
     }
 
-    /* Top button container */
     #topButtons {
       margin-top: 1rem;
     }
-
     button {
       font-size: 1.2rem;
       padding: 0.5rem 1rem;
@@ -58,7 +56,7 @@
       min-height: 2em; /* reserve space even when empty */
     }
 
-    /* Container for played signs */
+    /* Container for the 4 signs that have played */
     #playedSigns {
       margin-top: 2rem;
       width: 80%;
@@ -72,7 +70,7 @@
       font-size: 1.2rem;
     }
 
-    /* Radio buttons and Submit */
+    /* Radio buttons */
     #choiceContainer {
       margin-top: 2rem;
     }
@@ -82,6 +80,33 @@
     }
     label {
       cursor: pointer;
+    }
+
+    /* Reorder section (drag-and-drop) */
+    #reorderContainer {
+      margin-top: 2rem;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left; /* so items align more naturally */
+      display: none;    /* hidden until needed */
+    }
+
+    #reorderContainer h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .draggableItem {
+      background-color: #222;
+      margin: 0.3rem 0;
+      padding: 0.5rem;
+      border: 1px solid #888;
+      cursor: move;
+    }
+
+    .dragOver {
+      outline: 2px dashed #fff;
     }
   </style>
 </head>
@@ -93,21 +118,28 @@
     <button id="restartBtn">Restart Game</button>
   </div>
 
-  <!-- Current sign with stroke effect -->
+  <!-- Current sign with stroke effect (while playing) -->
   <div id="sign"></div>
 
-  <!-- Container for played signs in plain text -->
+  <!-- Container for the 4 signs that have been played -->
   <div id="playedSigns"></div>
 
-  <!-- Container for radio buttons and the Submit button -->
+  <!-- Container for radio buttons + Submit (appears after 4 audio clips) -->
   <div id="choiceContainer"></div>
+
+  <!-- Drag-and-drop reorder container (shown after user picks radio) -->
+  <div id="reorderContainer">
+    <h2>Reorder Your 4 Signs</h2>
+    <!-- We'll dynamically insert the items. -->
+    <!-- Then a "Submit Order" button -->
+    <button id="submitOrderBtn">Submit Order</button>
+  </div>
 
   <!-- Single audio element -->
   <audio id="audioElement"></audio>
 
   <script>
-    // -------- DATA --------
-    // The master list of possible signs (text strings)
+    // ========== DATA ==========
     const possibleSigns = [
       "That is embarrassing",
       "that isn’t my receipt",
@@ -123,7 +155,6 @@
       "Battles and Parasites"
     ];
 
-    // Audio playlist (4 clips to play in order)
     const audioPlaylist = [
       "audio/clip1.mp3",
       "audio/clip2.mp3",
@@ -131,21 +162,22 @@
       "audio/clip4.mp3"
     ];
 
-    // -------- ELEMENTS --------
+    // ========== ELEMENTS ==========
+    const restartBtn          = document.getElementById("restartBtn");
     const audioEl             = document.getElementById("audioElement");
     const signEl              = document.getElementById("sign");
     const playedSignsContainer = document.getElementById("playedSigns");
     const choiceContainer     = document.getElementById("choiceContainer");
-    const restartBtn          = document.getElementById("restartBtn");
+    const reorderContainer    = document.getElementById("reorderContainer");
+    const submitOrderBtn      = document.getElementById("submitOrderBtn");
 
-    // -------- STATE --------
-    // We'll store the 4 chosen *original indices* from the possibleSigns array.
-    // Then we can quickly get the text, and also store that index if selected by the user.
-    let chosenSignIndexes = [];
-    let currentIndex      = 0;  // Which audio clip is playing
-    let userSelectionIndex = null; // We'll store the user's chosen index
+    // ========== STATE ==========
+    let chosenSignIndexes = [];  // the 4 unique random indices from possibleSigns
+    let currentIndex      = 0;   // which audio track is playing
+    let userSelectionIndex = null;  // the chosen sign's original index
+    let reorderArray      = [];  // for drag-and-drop (stores the 4 chosen indices in the final reorder)
 
-    // -------- UTILITY: Shuffle an array in place (Fisher-Yates) --------
+    // ========== UTILITY: shuffle in place ==========
     function shuffleArray(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -154,103 +186,88 @@
       return arr;
     }
 
-    // -------- GAME LOGIC --------
-
-    // 1) Start a brand new game
+    // ========== START NEW GAME ==========
     function startNewGame() {
-      // Stop any current audio
       audioEl.pause();
       audioEl.currentTime = 0;
 
-      // Clear containers, indexes, etc.
+      // Clear / reset everything
       playedSignsContainer.innerHTML = "";
       choiceContainer.innerHTML      = "";
+      reorderContainer.style.display = "none";
       signEl.textContent            = "";
       chosenSignIndexes             = [];
       currentIndex                  = 0;
       userSelectionIndex            = null;
+      reorderArray                  = [];
 
-      // Choose 4 random indices from possibleSigns
+      // Pick 4 random sign indexes
       chosenSignIndexes = pick4RandomSignIndexes();
 
-      // Load the first audio clip and start playing
+      // Load the first track and play
       loadTrack(currentIndex);
       audioEl.play();
     }
 
-    // 2) Return an array of 4 unique random indices
     function pick4RandomSignIndexes() {
-      // All indexes [0, 1, ..., N-1]
-      const allIndexes = Array.from({length: possibleSigns.length}, (_, i) => i);
-      shuffleArray(allIndexes);
-
-      // Take first 4
-      return allIndexes.slice(0, 4);
+      const indices = Array.from({length: possibleSigns.length}, (_,i) => i);
+      shuffleArray(indices);
+      return indices.slice(0, 4);
     }
 
-    // 3) Load a track by index and set the stroke-text sign
     function loadTrack(index) {
       if (index < audioPlaylist.length) {
         audioEl.src = audioPlaylist[index];
         const signIdx = chosenSignIndexes[index];
-        signEl.textContent = possibleSigns[signIdx]; // show text with stroke effect
+        signEl.textContent = possibleSigns[signIdx]; // stroke effect area
       } else {
         audioEl.src = "";
         signEl.textContent = "";
       }
     }
 
-    // 4) On each clip end: show plain text in #playedSigns, then move to next
+    // ========== AUDIO EVENT: ended ==========
     audioEl.addEventListener("ended", () => {
       // Just-played sign
-      const playedSignIdx = chosenSignIndexes[currentIndex];
-      const playedSignText = possibleSigns[playedSignIdx];
-
-      // Append to the #playedSigns container
+      const playedSignIndex = chosenSignIndexes[currentIndex];
+      const playedSignText  = possibleSigns[playedSignIndex];
+      // Append to #playedSigns
       const p = document.createElement("p");
       p.textContent = playedSignText;
       playedSignsContainer.appendChild(p);
 
-      // Move on
       currentIndex++;
       if (currentIndex < audioPlaylist.length) {
         loadTrack(currentIndex);
         audioEl.play();
       } else {
-        // All four have played, so show radio buttons
+        // All 4 done
         signEl.textContent = "";
+        // Show radio button choices
         createRadioButtonsAndSubmit();
       }
     });
 
-    // 5) If user manually pauses (e.g. through browser controls), let them resume
-    audioEl.addEventListener("pause", () => {
-      // do nothing special, or re-enable a "Play" if you had one.
-      // but we've removed the Play button, so this is optional
-    });
-
-    // 6) Build radio buttons + "Submit" after the last sign
+    // ========== CREATE RADIO BUTTONS ==========
     function createRadioButtonsAndSubmit() {
-      choiceContainer.innerHTML = ""; // clear just in case
+      choiceContainer.innerHTML = "";
 
-      // Add instructions
       const info = document.createElement("p");
       info.textContent = "Choose exactly one of the 4 displayed signs:";
       choiceContainer.appendChild(info);
 
-      // Create a container for the radio items
+      // We'll create a radio for each of the chosenSignIndexes
       chosenSignIndexes.forEach((signIdx, i) => {
         const signText = possibleSigns[signIdx];
 
-        // Each choice in a separate div
         const div = document.createElement("div");
         div.classList.add("choiceItem");
 
         const input = document.createElement("input");
         input.type = "radio";
         input.name = "signSelection";
-        input.id = `signOption${i}`;
-        // value = the *original index* in the possibleSigns
+        input.id   = `signOption${i}`;
+        // store the original index in the value
         input.value = signIdx;
 
         const label = document.createElement("label");
@@ -262,33 +279,142 @@
         choiceContainer.appendChild(div);
       });
 
-      // Create a "Submit" button
+      // Add a "Submit" button
       const submitBtn = document.createElement("button");
       submitBtn.textContent = "Submit";
       submitBtn.addEventListener("click", onSubmitChoice);
       choiceContainer.appendChild(submitBtn);
     }
 
-    // 7) On "Submit" click, store the *original index* the user picked
+    // ========== RADIO SUBMIT HANDLER ==========
     function onSubmitChoice() {
-      // Find which radio is selected
       const selectedRadio = document.querySelector("input[name='signSelection']:checked");
       if (!selectedRadio) {
-        alert("Please select one of the options.");
+        alert("Please select one of the options first.");
         return;
       }
 
-      // Convert string -> number
       userSelectionIndex = parseInt(selectedRadio.value, 10);
+      // We have the user's chosen sign index from possibleSigns
+      // Now we enable the reorder step:
 
-      // You can do anything you want with that index here
-      console.log("User selected index in possibleSigns: ", userSelectionIndex);
-
-      // For demonstration, maybe show a quick message
-      alert(`You picked: "${possibleSigns[userSelectionIndex]}" (index ${userSelectionIndex})`);
+      // Hide the radio UI
+      choiceContainer.innerHTML = "";
+      // Show drag-and-drop reorder
+      showReorderUI();
     }
 
-    // 8) Hook up the Restart button to start a new game
+    // ========== SHOW DRAG-AND-DROP UI ==========
+    function showReorderUI() {
+      reorderContainer.style.display = "block";
+
+      // We'll start reorderArray with the same order as chosenSignIndexes
+      // (You could re-shuffle them if you want a random initial order.)
+      reorderArray = [...chosenSignIndexes];
+
+      // Render them as draggable items
+      renderReorderList();
+    }
+
+    // ========== RENDER THE DRAGGABLE LIST ==========
+    function renderReorderList() {
+      // We'll insert them right before the "Submit Order" button
+      // So let's temporarily remove the button, re-insert after items
+      const submitBtn = document.getElementById("submitOrderBtn");
+      reorderContainer.innerHTML = '<h2>Reorder Your 4 Signs</h2>';
+      reorderContainer.appendChild(submitBtn);
+
+      reorderArray.forEach((signIdx, i) => {
+        const signText = possibleSigns[signIdx];
+        const div = document.createElement("div");
+        div.classList.add("draggableItem");
+        div.textContent = signText;
+        div.setAttribute("draggable", "true");
+        // We'll store the position in a data attribute
+        div.dataset.position = i;
+
+        // DRAG EVENT: start
+        div.addEventListener("dragstart", handleDragStart);
+        // DRAG EVENT: end
+        div.addEventListener("dragend", handleDragEnd);
+        // DRAG EVENT: over
+        div.addEventListener("dragover", handleDragOver);
+        // DRAG EVENT: drop
+        div.addEventListener("drop", handleDrop);
+
+        // Insert it above the "Submit Order" button
+        reorderContainer.insertBefore(div, submitBtn);
+      });
+    }
+
+    // We'll track the index of the item being dragged
+    let dragSrcIndex = null;
+
+    function handleDragStart(e) {
+      // 'this' is the dragged item
+      dragSrcIndex = parseInt(this.dataset.position, 10);
+      // Some browsers need setData, even if empty
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", ""); 
+      // Add a class if you want styling
+      this.classList.add("dragging");
+    }
+
+    function handleDragEnd() {
+      this.classList.remove("dragging");
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault(); // allow drop
+      this.classList.add("dragOver");
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      this.classList.remove("dragOver");
+
+      const dropTargetIndex = parseInt(this.dataset.position, 10);
+
+      // Reorder the array: move the item at dragSrcIndex to dropTargetIndex
+      if (dragSrcIndex !== dropTargetIndex) {
+        // Remove the item from old position
+        const movedItem = reorderArray.splice(dragSrcIndex, 1)[0];
+        // Insert it into the new position
+        reorderArray.splice(dropTargetIndex, 0, movedItem);
+        // Re-render
+        renderReorderList();
+      }
+    }
+
+    // ========== SUBMIT ORDER BUTTON ==========
+    submitOrderBtn.addEventListener("click", () => {
+      // reorderArray now holds the final order of the *4 chosen indices*
+      // We'll open a new page and display them
+      openResultPage();
+    });
+
+    function openResultPage() {
+      // Create a new tab/window
+      const newWin = window.open("", "_blank");
+      // Build some HTML to display the final order
+      newWin.document.write("<html><head><title>Final Order</title></head><body style='font-family:sans-serif;'>");
+      newWin.document.write("<h2>Here is your final reordered list:</h2>");
+      newWin.document.write("<ol>");
+
+      reorderArray.forEach(idx => {
+        newWin.document.write("<li>" + possibleSigns[idx] + "</li>");
+      });
+
+      newWin.document.write("</ol>");
+
+      newWin.document.write("<hr><p>You had initially selected index: " + userSelectionIndex + "<br/>");
+      newWin.document.write("which is \"" + possibleSigns[userSelectionIndex] + "\".</p>");
+
+      newWin.document.write("</body></html>");
+      newWin.document.close();
+    }
+
+    // ========== RESTART BUTTON CLICK ==========
     restartBtn.addEventListener("click", startNewGame);
   </script>
 </body>
