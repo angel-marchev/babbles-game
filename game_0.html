@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: black;  /* black background */
+      color: #FAFAFA;           /* off-white text color */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    /* Play/Stop button */
+    button {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #007BFF;
+      color: white;
+      transition: background 0.3s;
+      margin-top: 1rem;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+
+    /* Static sign (no flashing) */
+    #sign {
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #fff; /* White text color for fill */
+    
+    /* Text shadow fallback for browsers without text-stroke */
+    text-shadow:
+      -1px 0 red,
+       1px 0 red,
+       0 -1px red,
+       0  1px red;
+
+    /* Crisp outline in Chrome/Safari/Edge (WebKit/Blink-based) */
+    -webkit-text-stroke: 1px red;
+    -webkit-text-fill-color: #fff;
+  }
+  </style>
+</head>
+<body>
+  <h1>Listen and watch the screen</h1>
+  <button id="playBtn">Play / Stop</button>
+
+  <div id="sign"></div>
+
+  <!-- Single audio element -->
+  <audio id="audioElement"></audio>
+
+  <script>
+    // 1. Define your playlist: an array of { src, signText }
+    const playlist = [
+      { src: 'audio/clip1.mp3', signText: 'That is embarrassing' },
+      { src: 'audio/clip2.mp3', signText: 'that isn’t my receipt' },
+      { src: 'audio/clip3.mp3', signText: 'lactates in pharmacy' },
+      { src: 'audio/clip4.mp3', signText: 'baptism piracy' },
+      { src: 'audio/clip1.mp3', signText: 'that isn’t parsley' },
+      { src: 'audio/clip2.mp3', signText: 'bart simpson bouncing' },
+      { src: 'audio/clip3.mp3', signText: 'rats eating pirate shit' },
+      { src: 'audio/clip4.mp3', signText: 'five, six, six, five or six' },
+      { src: 'audio/clip1.mp3', signText: 'that isn’t bouncing' },
+      { src: 'audio/clip2.mp3', signText: 'nazis in pirate ships' },
+      { src: 'audio/clip3.mp3', signText: 'that isn’t piracy' },
+      { src: 'audio/clip4.mp3', signText: 'Battles and Parasites' }
+    ];
+
+    let currentIndex = 0;     // Which clip is currently selected
+    let isPlaying = false;    // Whether audio is currently playing
+    let isFirstPlay = true;   // To track if it's the first time user clicks Play
+    const audioEl = document.getElementById('audioElement');
+    const signEl = document.getElementById('sign');
+    const playBtn = document.getElementById('playBtn');
+
+    // 2. Define a function to load the current track
+    function loadTrack(index) {
+      if (index < playlist.length) {
+        audioEl.src = playlist[index].src;
+        signEl.textContent = playlist[index].signText;
+      } else {
+        // No more tracks
+        audioEl.src = '';
+        signEl.textContent = '';
+      }
+    }
+
+    // Do NOT load a track immediately on page load, so #sign is blank to start.
+    // loadTrack(currentIndex);  <-- (removed this line)
+
+    // 3. Only load/play when user clicks Play
+    playBtn.addEventListener('click', () => {
+      // If it's the first click, load the first track.
+      if (isFirstPlay) {
+        loadTrack(currentIndex);
+        isFirstPlay = false;
+      }
+
+      // Then play the audio
+      audioEl.play();
+      playBtn.disabled = true; // Optional: prevent multiple clicks
+    });
+
+    // 4. When each clip ends, load/play the next one automatically
+    audioEl.addEventListener('ended', () => {
+      currentIndex++;
+      if (currentIndex < playlist.length) {
+        loadTrack(currentIndex);
+        audioEl.play();
+      } else {
+        // No more clips, clear the sign
+        signEl.textContent = '';
+      }
+    });
+
+    // 5. If the user pauses in the middle, record isPlaying as false
+    audioEl.addEventListener('pause', () => {
+      isPlaying = false;
+      playBtn.disabled = false; // Re-enable if you want to let them continue
+    });
+  </script>
+</body>
+</html>
