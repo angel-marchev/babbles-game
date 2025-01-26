@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game with Random Signs</title>
+  <title>Game with Random Signs (Stroke Only While Playing)</title>
   <style>
     body {
       margin: 0;
@@ -13,13 +13,15 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start; /* So we have room for the appended signs */
       height: 100vh;
       text-align: center;
     }
+
     h1 {
-      margin-bottom: 1rem;
+      margin: 1rem 0 0.5rem 0;
     }
+
     button {
       font-size: 1.2rem;
       padding: 0.5rem 1rem;
@@ -34,6 +36,8 @@
     button:hover {
       background: #0056b3;
     }
+
+    /* This element shows the CURRENT sign with stroke effect */
     #sign {
       margin-top: 2rem;
       font-size: 1.5rem;
@@ -46,20 +50,41 @@
          0  1px red;
       -webkit-text-stroke: 1px red;
       -webkit-text-fill-color: #fff;
+      min-height: 2em; /* just to reserve some space even when empty */
+    }
+
+    /* Container for all previously played signs in plain white */
+    #playedSigns {
+      margin-top: 2rem;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+    }
+
+    /* Plain white lines in the playedSigns area */
+    #playedSigns p {
+      margin: 0.5rem 0;
+      color: #FAFAFA; /* no stroke, just white text */
+      font-size: 1.2rem;
     }
   </style>
 </head>
 <body>
-  <h1>Listen and watch the screen</h1>
+  <h1>Listen and Watch the Screen</h1>
   <button id="playBtn">Play / Stop</button>
 
+  <!-- The current sign with stroke effect -->
   <div id="sign"></div>
+
+  <!-- Container for previously displayed signs (plain white) -->
+  <div id="playedSigns"></div>
 
   <!-- Single audio element -->
   <audio id="audioElement"></audio>
 
   <script>
-    // 1) Define an array of possible sign texts (as many as you want).
+    // 1) Possible sign texts
     const possibleSigns = [
       "That is embarrassing",
       "that isn’t my receipt",
@@ -75,26 +100,24 @@
       "Battles and Parasites"
     ];
 
-    // 2) Define the 4 audio clips you want played in order.
-    //    We’ll no longer store signText in here, since we’ll
-    //    randomly pick them from possibleSigns.
+    // 2) Audio playlist (just 4 clips)
     const audioPlaylist = [
-      'audio/clip1.mp3',
-      'audio/clip2.mp3',
-      'audio/clip3.mp3',
-      'audio/clip4.mp3'
+      "audio/clip1.mp3",
+      "audio/clip2.mp3",
+      "audio/clip3.mp3",
+      "audio/clip4.mp3"
     ];
 
-    let currentIndex = 0;        // Track which audio clip is playing
-    let isFirstPlay = true;      // True until the user clicks Play the first time
-    const audioEl = document.getElementById('audioElement');
-    const signEl = document.getElementById('sign');
-    const playBtn = document.getElementById('playBtn');
+    const audioEl = document.getElementById("audioElement");
+    const signEl = document.getElementById("sign");
+    const playBtn = document.getElementById("playBtn");
+    const playedSignsContainer = document.getElementById("playedSigns");
 
-    // We'll store the 4 chosen sign texts here once we pick them.
-    let chosenSigns = [];
+    let chosenSigns = [];   // Will hold 4 random signs
+    let currentIndex = 0;   // Which clip is currently playing
+    let isFirstPlay = true; // So we only pick random signs once
 
-    // Utility to shuffle an array in-place (Fisher-Yates).
+    // Utility: shuffle array in-place (Fisher-Yates)
     function shuffleArray(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -103,59 +126,61 @@
       return arr;
     }
 
-    // 3) Function to pick 4 random sign texts and shuffle them.
+    // Pick 4 random signs & shuffle them so their order is random
     function pickRandomSigns() {
-      // Copy possibleSigns so we don't mutate the original.
       const cloned = [...possibleSigns];
-      // Shuffle the big list first to randomize selection.
-      shuffleArray(cloned);
-      // Take the first 4
-      const selected = cloned.slice(0, 4);
-      // Shuffle them again if you want their display order random as well:
-      shuffleArray(selected);
+      shuffleArray(cloned);        // shuffle the big list
+      const selected = cloned.slice(0, 4); // get first 4
+      shuffleArray(selected);       // shuffle those 4 again if you want random order
       return selected;
     }
 
-    // 4) Load a track by index and display the matching random sign
     function loadTrack(index) {
       if (index < audioPlaylist.length) {
-        // Set the audio src
         audioEl.src = audioPlaylist[index];
-        // Update the sign text from the chosen signs
-        signEl.textContent = chosenSigns[index] || '';
+        // Show the sign with stroke effect
+        signEl.textContent = chosenSigns[index];
       } else {
         // No more tracks
-        audioEl.src = '';
-        signEl.textContent = '';
+        audioEl.src = "";
+        signEl.textContent = "";
       }
     }
 
-    // 5) Click handler: On the first click, pick the random signs and load track 0
-    playBtn.addEventListener('click', () => {
+    // 5) Handle Play button
+    playBtn.addEventListener("click", () => {
       if (isFirstPlay) {
+        // 1) pick random signs
         chosenSigns = pickRandomSigns();
+        // 2) load the first track
         loadTrack(currentIndex);
         isFirstPlay = false;
       }
-      // Start playing
+      // Start audio
       audioEl.play();
       playBtn.disabled = true;
     });
 
-    // 6) When the current audio ends, advance to the next clip
-    audioEl.addEventListener('ended', () => {
+    // 6) After each clip ends, append that sign in plain white, then go to next
+    audioEl.addEventListener("ended", () => {
+      // Add the just-played sign to the #playedSigns container in plain text
+      const p = document.createElement("p");
+      p.textContent = chosenSigns[currentIndex];
+      playedSignsContainer.appendChild(p);
+
+      // Move on
       currentIndex++;
       if (currentIndex < audioPlaylist.length) {
         loadTrack(currentIndex);
         audioEl.play();
       } else {
-        // After last clip ends, clear sign or show something else
-        signEl.textContent = '';
+        // No more clips - clear the current sign
+        signEl.textContent = "";
       }
     });
 
-    // 7) If user pauses, let them resume
-    audioEl.addEventListener('pause', () => {
+    // 7) If user pauses, allow them to resume
+    audioEl.addEventListener("pause", () => {
       playBtn.disabled = false;
     });
   </script>
