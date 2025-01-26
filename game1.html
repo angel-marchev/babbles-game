@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Game with Random Signs</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: black;
+      color: #FAFAFA;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    button {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #007BFF;
+      color: white;
+      transition: background 0.3s;
+      margin-top: 1rem;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #sign {
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow:
+        -1px 0 red,
+         1px 0 red,
+         0 -1px red,
+         0  1px red;
+      -webkit-text-stroke: 1px red;
+      -webkit-text-fill-color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Listen and watch the screen</h1>
+  <button id="playBtn">Play / Stop</button>
+
+  <div id="sign"></div>
+
+  <!-- Single audio element -->
+  <audio id="audioElement"></audio>
+
+  <script>
+    // 1) Define an array of possible sign texts (as many as you want).
+    const possibleSigns = [
+      "That is embarrassing",
+      "that isn’t my receipt",
+      "lactates in pharmacy",
+      "baptism piracy",
+      "that isn’t parsley",
+      "bart simpson bouncing",
+      "rats eating pirate shit",
+      "five, six, six, five or six",
+      "that isn’t bouncing",
+      "nazis in pirate ships",
+      "that isn’t piracy",
+      "Battles and Parasites"
+    ];
+
+    // 2) Define the 4 audio clips you want played in order.
+    //    We’ll no longer store signText in here, since we’ll
+    //    randomly pick them from possibleSigns.
+    const audioPlaylist = [
+      'audio/clip1.mp3',
+      'audio/clip2.mp3',
+      'audio/clip3.mp3',
+      'audio/clip4.mp3'
+    ];
+
+    let currentIndex = 0;        // Track which audio clip is playing
+    let isFirstPlay = true;      // True until the user clicks Play the first time
+    const audioEl = document.getElementById('audioElement');
+    const signEl = document.getElementById('sign');
+    const playBtn = document.getElementById('playBtn');
+
+    // We'll store the 4 chosen sign texts here once we pick them.
+    let chosenSigns = [];
+
+    // Utility to shuffle an array in-place (Fisher-Yates).
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // 3) Function to pick 4 random sign texts and shuffle them.
+    function pickRandomSigns() {
+      // Copy possibleSigns so we don't mutate the original.
+      const cloned = [...possibleSigns];
+      // Shuffle the big list first to randomize selection.
+      shuffleArray(cloned);
+      // Take the first 4
+      const selected = cloned.slice(0, 4);
+      // Shuffle them again if you want their display order random as well:
+      shuffleArray(selected);
+      return selected;
+    }
+
+    // 4) Load a track by index and display the matching random sign
+    function loadTrack(index) {
+      if (index < audioPlaylist.length) {
+        // Set the audio src
+        audioEl.src = audioPlaylist[index];
+        // Update the sign text from the chosen signs
+        signEl.textContent = chosenSigns[index] || '';
+      } else {
+        // No more tracks
+        audioEl.src = '';
+        signEl.textContent = '';
+      }
+    }
+
+    // 5) Click handler: On the first click, pick the random signs and load track 0
+    playBtn.addEventListener('click', () => {
+      if (isFirstPlay) {
+        chosenSigns = pickRandomSigns();
+        loadTrack(currentIndex);
+        isFirstPlay = false;
+      }
+      // Start playing
+      audioEl.play();
+      playBtn.disabled = true;
+    });
+
+    // 6) When the current audio ends, advance to the next clip
+    audioEl.addEventListener('ended', () => {
+      currentIndex++;
+      if (currentIndex < audioPlaylist.length) {
+        loadTrack(currentIndex);
+        audioEl.play();
+      } else {
+        // After last clip ends, clear sign or show something else
+        signEl.textContent = '';
+      }
+    });
+
+    // 7) If user pauses, let them resume
+    audioEl.addEventListener('pause', () => {
+      playBtn.disabled = false;
+    });
+  </script>
+</body>
+</html>
