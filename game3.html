@@ -174,7 +174,9 @@
 
     async function sendDataToFirebase() {
       try {
-        await setDoc(doc(db, "gameData", "latest"), {
+        const userIndex = Date.now(); // Use a timestamp or another unique identifier
+        await setDoc(doc(db, "userSubmissions", `${userIndex), {
+          userIndex: userIndex,
           chosenSignIndexes: chosenSignIndexes,
           userSelectionIndex: userSelectionIndex
         });
@@ -183,23 +185,74 @@
         console.error("Error sending data to Firebase:", error);
       }
     }
+    
 
-    async function fetchFrequencyNumbersFromFirebase() {
+                                                   
+    async function fetchAllSubmissions() {
       try {
-        const docRef = doc(db, "frequencyData", "latest");
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          frequencyNumbers = docSnap.data().values;
-          displayFrequencyNumbersWithSigns();
-        } else {
-          console.error("No frequency data found in Firebase!");
-        }
+        const querySnapshot = await getDocs(collection(db, "userSubmissions"));
+        const submissions = [];
+        querySnapshot.forEach((doc) => {
+          submissions.push(doc.data());
+        });
+        return submissions;
       } catch (error) {
-        console.error("Error fetching frequency data from Firebase:", error);
+        console.error("Error fetching user submissions:", error);
+        return [];
       }
     }
 
+    function calculateFrequencyNumbers(submissions) {
+      const frequencyMap = new Map();
+    
+      // Count occurrences of each index
+      submissions.forEach((submission) => {
+        const { chosenSignIndexes, userSelectionIndex } = submission;
+    
+        // Increment the count for indexes in `chosenSignIndexes`
+        chosenSignIndexes.forEach((index) => {
+          if (!frequencyMap.has(index)) {
+            frequencyMap.set(index, { available: 0, selected: 0 });
+          }
+          frequencyMap.get(index).available++;
+        });
+    
+        // Increment the count for the selected index
+        if (userSelectionIndex !== null) {
+          if (!frequencyMap.has(userSelectionIndex)) {
+            frequencyMap.set(userSelectionIndex, { available: 0, selected: 0 });
+          }
+          frequencyMap.get(userSelectionIndex).selected++;
+        }
+      });
+    
+      // Calculate frequencies
+      return chosenSignIndexes.map((index) => {
+        const { available, selected } = frequencyMap.get(index) || { available: 0, selected: 0 };
+        return available > 0 ? selected / available : 0;
+      });
+    }
+
+    async function onSubmitChoice() {
+      const selectedRadio = document.querySelector("input[name='signSelection']:checked");
+      if (!selectedRadio) {
+        alert("Please select one of the options first.");
+        return;
+      }
+      userSelectionIndex = parseInt(selectedRadio.value, 10);
+    
+      // Save data to Firestore
+      await sendDataToFirebase();
+    
+      // Fetch all submissions and calculate frequency numbers
+      const submissions = await fetchAllSubmissions();
+      frequencyNumbers = calculateFrequencyNumbers(submissions);
+    
+      // Display frequency numbers
+      displayFrequencyNumbersWithSigns();
+    }
+
+                                                   
     function createRadioButtonsAndSubmit() {
       choiceContainer.innerHTML = "";
 
@@ -239,11 +292,11 @@
 
     function displayFrequencyNumbersWithSigns() {
       const lines = playedSignsContainer.querySelectorAll("p");
-
+    
       lines.forEach((p, i) => {
-        p.textContent = p.textContent + " " + frequencyNumbers[i];
+        p.textContent = `${p.textContent} (${frequencyNumbers[i].toFixed(2)})`;
       });
-
+    
       const continueBtn = document.createElement("button");
       continueBtn.textContent = "Continue";
       continueBtn.addEventListener("click", setupReorderUI);
