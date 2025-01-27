@@ -174,8 +174,8 @@
 
     async function sendDataToFirebase() {
       try {
-        const userIndex = Date.now(); // Use a timestamp or another unique identifier
-        await setDoc(doc(db, "userSubmissions", `${userIndex), {
+        const userIndex = Date.now(); // Use a timestamp as a unique identifier
+        await setDoc(doc(db, "userSubmissions", `${userIndex}`), { // Closing backtick and bracket fixed
           userIndex: userIndex,
           chosenSignIndexes: chosenSignIndexes,
           userSelectionIndex: userSelectionIndex
@@ -185,9 +185,9 @@
         console.error("Error sending data to Firebase:", error);
       }
     }
-    
 
-                                                   
+    
+                                                  
     async function fetchAllSubmissions() {
       try {
         const querySnapshot = await getDocs(collection(db, "userSubmissions"));
